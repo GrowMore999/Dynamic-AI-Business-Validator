@@ -1,0 +1,57 @@
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Embedding, GlobalAveragePooling1D, Concatenate, Dropout, BatchNormalization
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pickle
+
+print("🧠 Training VentureNet (Hybrid Model)...")
+
+# 1. LOAD
+df = pd.read_csv('startup_data.csv')
+
+# 2. NLP
+vocab_size = 12000 # Larger vocab for better slang understanding
+tokenizer = Tokenizer(num_words=vocab_size, oov_token="<OOV>")
+tokenizer.fit_on_texts(df['description'])
+padded_desc = pad_sequences(tokenizer.texts_to_sequences(df['description']), maxlen=25, padding='post', truncating='post')
+
+# 3. SCALE [Budget, Saturation]
+scaler = StandardScaler()
+numerical_features = scaler.fit_transform(df[['funding_total_usd', 'competitors']].values)
+
+# 4. SPLIT
+X_text_train, X_text_test, X_num_train, X_num_test, y_train, y_test = train_test_split(
+    padded_desc, numerical_features, df['target'].values, test_size=0.2
+)
+
+# 5. MODEL ARCHITECTURE
+text_in = Input(shape=(25,), name='text_input')
+emb = Embedding(vocab_size, 32)(text_in)
+text_vec = GlobalAveragePooling1D()(emb)
+
+num_in = Input(shape=(2,), name='num_input')
+num_dense = Dense(32, activation='relu')(num_in)
+num_norm = BatchNormalization()(num_dense)
+
+merged = Concatenate()([text_vec, num_norm])
+dense1 = Dense(64, activation='relu')(merged)
+drop1 = Dropout(0.3)(dense1)
+dense2 = Dense(32, activation='relu')(drop1)
+out = Dense(1, activation='sigmoid')(dense2)
+
+model = Model(inputs=[text_in, num_in], outputs=out)
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# 6. TRAIN
+model.fit([X_text_train, X_num_train], y_train, epochs=12, batch_size=128, verbose=1)
+
+# 7. SAVE
+model.save('venture_model.h5')
+with open('tokenizer.pickle', 'wb') as h: pickle.dump(tokenizer, h)
+with open('scaler.pickle', 'wb') as h: pickle.dump(scaler, h)
+print("✅ VentureNet Trained & Saved.")
