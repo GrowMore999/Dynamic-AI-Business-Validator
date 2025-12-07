@@ -1,0 +1,79 @@
+import pandas as pd
+import numpy as np
+import random
+
+print("🗣️ Generating 70,000 'Street-Talk' Startup Scenarios...")
+
+def generate_informal_data(n=70000):
+    data = []
+
+    # 1. CASUAL TEMPLATES (How people actually talk)
+    templates = [
+        "I want to build a {tech} for {target}",
+        "Like {giant} but for {target}",
+        "A {adj} {tech} app",
+        "Website to find {target}",
+        "Basically {giant} for {target}",
+        "Best {adj} {biz} in {city}",
+        "Selling {adj} {biz} online",
+        "Automated {tech} tool",
+        "A platform connecting {target} with {biz}",
+        "{tech} that helps {target} to {action}"
+    ]
+
+    # 2. RICH VOCABULARY
+    tech_keywords = ['AI', 'Crypto', 'Blockchain', 'Chatbot', 'SaaS', 'Bot', 'Platform', 'Algorithm', 'Neural Net', 'Drone']
+    biz_keywords = ['bakery', 'clothing brand', 'agency', 'consulting', 'store', 'cafe', 'gym', 'salon', 'restaurant']
+    giants = ['Uber', 'Tinder', 'Airbnb', 'Google', 'Amazon', 'Facebook', 'Netflix', 'Spotify']
+    targets = ['dogs', 'students', 'gamers', 'seniors', 'doctors', 'rich people', 'kids', 'freelancers', 'designers']
+    adjectives = ['cheap', 'luxury', 'fast', 'simple', 'crazy', 'smart', 'local', 'exclusive', 'sustainable']
+    cities = ['Bangalore', 'Mumbai', 'Delhi', 'Remote', 'Global', 'New York', 'London']
+    actions = ['save money', 'find jobs', 'learn coding', 'get fit', 'meet people', 'travel cheaper']
+
+    for _ in range(n):
+        template = random.choice(templates)
+
+        # Logic: Tech vs. Physical
+        if random.random() > 0.6: # 40% Tech
+            tech = random.choice(tech_keywords)
+            desc = template.format(tech=tech, target=random.choice(targets), giant=random.choice(giants),
+                                   adj=random.choice(adjectives), biz="app", city="online", action=random.choice(actions))
+            budget = np.random.randint(5000, 10000000)
+            saturation = np.random.randint(40, 95) # Tech is crowded
+            category = "Tech"
+        else: # 60% SMB
+            biz = random.choice(biz_keywords)
+            desc = template.format(tech="app", target=random.choice(targets), giant=random.choice(giants),
+                                   adj=random.choice(adjectives), biz=biz, city=random.choice(cities), action=random.choice(actions))
+            desc = desc.replace("{tech}", "shop").replace("{giant}", "Starbucks") # Cleanup
+
+            budget = np.random.randint(1000, 500000)
+            saturation = np.random.randint(10, 70)
+            category = "Retail"
+
+        # Refine Saturation Logic based on "Trigger Words"
+        desc_lower = desc.lower()
+        if "ai" in desc_lower or "crypto" in desc_lower: saturation += 15
+        if "uber" in desc_lower or "amazon" in desc_lower: saturation += 10
+        if "local" in desc_lower or "handmade" in desc_lower: saturation -= 15
+
+        saturation = max(5, min(95, saturation))
+
+        # Target Label (Success Logic)
+        score = 50
+        if category == "Tech" and budget > 1000000: score += 30
+        if category == "Retail" and budget < 20000: score -= 20
+        if saturation > 80: score -= 15
+        if saturation < 20: score += 15
+
+        # Add some noise/luck
+        success = 1 if (score + random.randint(-15, 15)) > 60 else 0
+
+        data.append([desc, budget, saturation, success])
+
+    return pd.DataFrame(data, columns=['description', 'funding_total_usd', 'competitors', 'target'])
+
+df = generate_informal_data()
+df.to_csv('startup_data.csv', index=False)
+print(f"✅ Generated {len(df)} informal scenarios.")
+print(f"SAMPLE: {df['description'].iloc[0]} | Saturation: {df['competitors'].iloc[0]} | Budget: ${df['funding_total_usd'].iloc[0]}")
