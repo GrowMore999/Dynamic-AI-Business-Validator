@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 # 🔴 PASTE YOUR API KEY HERE
-GOOGLE_API_KEY = "AIzaSyDohh2u2MSnxQnwLpa_g0QkqJbBE8q1DDY"
+GOOGLE_API_KEY = "ADD HERE"
 
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
