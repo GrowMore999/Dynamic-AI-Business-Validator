@@ -1,0 +1,18 @@
+# 1. Install
+!pip install -q streamlit google-generativeai tensorflow pandas numpy plotly fpdf
+
+# 2. Get Tunnel
+!wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+!chmod +x cloudflared-linux-amd64
+
+# 3. Launch
+import os
+print("🚀 Launching VentureVision Final...")
+!nohup python -m streamlit run app.py --server.port 8501 > streamlit.log 2>&1 &
+!nohup ./cloudflared-linux-amd64 tunnel --url http://localhost:8501 > cloudflare.log 2>&1 &
+
+# 4. Wait & Print
+import time
+print("⏳ Waiting for tunnel...")
+time.sleep(10)
+!grep -o 'https://.*.trycloudflare.com' cloudflare.log | head -n 1
